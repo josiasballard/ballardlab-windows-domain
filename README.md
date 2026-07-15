@@ -283,9 +283,3 @@ The project included hands-on diagnosis and validation of:
 ## Skills Demonstrated
 
 `Windows Server 2022` `Active Directory` `AD DS` `DNS` `DHCP` `Group Policy` `Group Policy Preferences` `Hyper-V` `Windows 11` `AGDLP` `NTFS Permissions` `SMB` `RBAC` `Least Privilege` `Identity and Access Management` `Infrastructure Troubleshooting`
-
----
-
-## Skills Demonstrated
-
-`Windows Server 2022` `Active Directory` `AD DS` `DNS` `DHCP` `Hyper-V` `Windows 11` `AGDLP` `NTFS Permissions` `SMB` `RBAC` `Least Privilege` `Infrastructure Troubleshooting`
