@@ -37,7 +37,15 @@ After promotion and restart, domain administrative authentication used the BALLA
 
 The completed deployment established DC01 as the domain controller for the new `ballardlab.local` forest.
 
-![Active Directory domain controller deployment](../screenshots/03-active-directory-domain-controller-deployment.png)
+![Active Directory new forest configuration](../screenshots/03-ad-ds-new-forest-review.png)
+
+The AD DS deployment prerequisite check completed successfully before promotion.
+
+![Active Directory deployment prerequisite validation](../screenshots/04-ad-ds-prerequisite-check.png)
+
+After promotion, the new `ballardlab.local` domain was visible in Active Directory Users and Computers.
+
+![Active Directory domain created](../screenshots/05-active-directory-domain-created.png)
 
 ## Organizational Unit Structure
 
@@ -65,7 +73,7 @@ An OU determines where an object is administratively organized and can affect Gr
 
 Security group membership determines access paths to protected resources.
 
-![Active Directory organizational unit structure](../screenshots/04-active-directory-ou-structure.png)
+![Active Directory organizational unit structure](../screenshots/06-ad-organizational-unit-structure.png)
 
 ## Domain User Accounts
 
@@ -93,7 +101,9 @@ The accounts were initially placed in their corresponding department OUs.
 
 These users were used to perform both positive and negative access testing against departmental file shares.
 
-Sarah was later transferred from Finance to Operations as part of a role-change lifecycle test. The role transfer and resulting Group Policy behavior are documented in:
+Sarah was later transferred from Finance to Operations as part of a role-change lifecycle test.
+
+The role transfer and resulting Group Policy behavior are documented in:
 
 [Group Policy and Role-Based Drive Mapping](05-group-policy.md)
 
@@ -134,7 +144,7 @@ Resource permissions are not assigned directly to individual user accounts.
 
 The Global security groups were created separately from resource permission groups to preserve role-based administration.
 
-![Active Directory Global security groups](../screenshots/05-global-security-groups.png)
+![Active Directory Global security groups](../screenshots/07-global-security-groups.png)
 
 ## Domain Local Security Groups
 
@@ -167,17 +177,19 @@ DL-Operations-Share-Modify
 
 The Domain Local groups are then assigned permissions on the corresponding NTFS resources.
 
-![Active Directory Domain Local security groups](../screenshots/06-domain-local-security-groups.png)
+The resulting resource ACL configuration is documented in:
+
+[Access Control](04-access-control.md)
 
 ## AGDLP Design
 
 BallardLab uses the AGDLP access-control model:
 
 ```text
-A - Accounts
-G - Global Groups
+A  - Accounts
+G  - Global Groups
 DL - Domain Local Groups
-P - Permissions
+P  - Permissions
 ```
 
 The initial Finance access path was:
@@ -196,7 +208,7 @@ NTFS Modify
 
 Sarah's initial membership in the Finance Global security group was validated directly in Active Directory.
 
-![Sarah Miller initial Finance group membership](../screenshots/08-sarah-finance-group-membership.png)
+![Sarah Miller initial Finance group membership](../screenshots/08-finance-user-group-membership.png)
 
 The Operations access path is:
 
@@ -299,7 +311,7 @@ The DNS response identified:
 
 ```text
 dc01.ballardlab.local
-Port: 389
+Port:    389
 Address: 10.10.10.10
 ```
 
@@ -322,6 +334,7 @@ The Active Directory design was validated by:
 
 - Deploying a new `ballardlab.local` Active Directory forest
 - Promoting DC01 as the first domain controller
+- Completing AD DS prerequisite validation
 - Creating a structured OU hierarchy
 - Creating departmental domain user accounts
 - Creating role-based Global security groups
