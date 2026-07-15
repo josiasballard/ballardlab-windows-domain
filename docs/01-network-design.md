@@ -55,6 +55,16 @@ The default gateway is intentionally blank because no router currently exists on
 
 DC01 points to its own IP address for DNS because it hosts the Active Directory DNS service for `ballardlab.local`.
 
+### Initial APIPA State
+
+Before static IPv4 configuration, DC01 assigned itself an Automatic Private IP Address in the `169.254.0.0/16` range because no DHCP service was available on the isolated network.
+
+![DC01 APIPA address before static configuration](../screenshots/01-dc01-apipa-before-static-ip.png)
+
+The server was then manually configured with the static address `10.10.10.10/24` and configured to use itself as the internal DNS server.
+
+![DC01 static IPv4 configuration](../screenshots/02-dc01-static-ip-configuration.png)
+
 ## Client Addressing
 
 CLIENT01 is configured as a DHCP client.
@@ -78,6 +88,10 @@ DNS Suffix:   ballardlab.local
 
 No default gateway is distributed because the lab currently has no routed connection to another network.
 
+The resulting client network configuration was validated using `ipconfig /all`.
+
+![CLIENT01 DHCP network configuration](../screenshots/19-client01-dhcp-configuration.png)
+
 ## APIPA Validation
 
 Before DHCP was available, both server and client configuration testing exposed Automatic Private IP Addressing behavior.
@@ -87,6 +101,8 @@ CLIENT01 received a `169.254.x.x` address while configured as a DHCP client with
 This indicated that the client failed to obtain a DHCP lease and self-assigned a link-local IPv4 address.
 
 After the DHCP service was deployed and an active scope was configured, CLIENT01 successfully obtained valid BallardLab network configuration.
+
+The behavior demonstrated the difference between a self-assigned APIPA address and valid network configuration received from an authorized DHCP server.
 
 ## Design Notes
 
@@ -108,7 +124,17 @@ The network configuration was validated using:
 ipconfig /all
 ```
 
-CLIENT01 successfully received DHCP configuration from `10.10.10.10` and was able to communicate with DC01 across the local subnet.
+Validation confirmed that:
+
+- DC01 uses the static infrastructure address `10.10.10.10`
+- CLIENT01 is configured as a DHCP client
+- CLIENT01 received `10.10.10.101/24`
+- DHCP service was provided by `10.10.10.10`
+- CLIENT01 uses `10.10.10.10` for internal DNS
+- The `ballardlab.local` DNS suffix was assigned to the client
+- No default gateway was configured on the isolated subnet
+
+CLIENT01 successfully received DHCP configuration from DC01 and was able to communicate with the server across the local subnet.
 
 DNS and Active Directory service discovery validation are documented separately in:
 
