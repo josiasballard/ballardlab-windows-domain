@@ -1,42 +1,34 @@
 # BallardLab Windows Domain Infrastructure
 
-A Windows Server 2022 infrastructure lab implementing Active Directory Domain Services, DNS, DHCP, domain-joined Windows endpoints, role-based access control, and SMB file services in an isolated Hyper-V environment.
+A hands-on Windows Server 2022 infrastructure lab implementing Active Directory Domain Services, DNS, DHCP, Group Policy, domain-joined Windows clients, AGDLP-based access control, and SMB file services in an isolated Hyper-V environment.
 
-The environment was built to model common Windows infrastructure administration tasks including domain deployment, centralized identity management, client network configuration, Active Directory service discovery, and least-privilege resource access.
+The project models common Windows systems administration tasks including centralized identity management, client network configuration, role-based resource access, Group Policy deployment, and user access lifecycle changes.
 
-> **Project Status:** In Progress — Group Policy and additional security controls are currently being implemented.
+> **Project Status:** In Progress — core domain infrastructure, access control, and role-based drive mapping are complete. Additional endpoint security policies are being implemented.
 
 ---
 
-## Environment Overview
+## Environment
 
 | Component | Configuration |
 |---|---|
 | Hypervisor | Microsoft Hyper-V |
-| Server | Windows Server 2022 |
+| Server OS | Windows Server 2022 |
+| Client OS | Windows 11 Pro |
 | Domain | `ballardlab.local` |
 | Domain Controller | `DC01` |
 | Domain Client | `CLIENT01` |
-| Client OS | Windows 11 Pro |
 | Network | `10.10.10.0/24` |
-| DNS Server | `10.10.10.10` |
-| DHCP Server | `10.10.10.10` |
+| DNS / DHCP | `10.10.10.10` |
 | DHCP Scope | `10.10.10.100 - 10.10.10.200` |
 
-### Core Services
+### Technologies
 
-- Active Directory Domain Services (AD DS)
-- AD-integrated DNS
-- DHCP
-- SMB file sharing
-- NTFS access control
-- AGDLP-based security group design
+`Windows Server 2022` `Active Directory` `DNS` `DHCP` `Group Policy` `Hyper-V` `Windows 11` `SMB` `NTFS` `AGDLP`
 
 ---
 
 ## Architecture
-
-The lab operates on an isolated Hyper-V virtual network named `BALLARDLAB-LAN`.
 
 ```text
                     BALLARDLAB-LAN
@@ -45,8 +37,8 @@ The lab operates on an isolated Hyper-V virtual network named `BALLARDLAB-LAN`.
               +-------------+-------------+
               |                           |
             DC01                       CLIENT01
-         10.10.10.10                 DHCP Client
-              |                       10.10.10.x
+         10.10.10.10                  DHCP Client
+              |                       10.10.10.101
               |
      +--------+--------+
      |        |        |
@@ -55,17 +47,17 @@ The lab operates on an isolated Hyper-V virtual network named `BALLARDLAB-LAN`.
  ballardlab.local
 ```
 
-`DC01` uses a static IPv4 address and provides centralized identity, DNS, and DHCP services.
+`BALLARDLAB-LAN` is an isolated Hyper-V Internal virtual network.
 
-`CLIENT01` is a Windows 11 Pro workstation configured as a DHCP client and joined to the `ballardlab.local` domain.
+DC01 uses a static IPv4 address and provides Active Directory, DNS, and DHCP services. CLIENT01 receives network configuration through DHCP and is joined to the `ballardlab.local` domain.
 
-The network is intentionally isolated and currently has no default gateway because communication is limited to the local `10.10.10.0/24` subnet.
+The isolated subnet currently has no default gateway because no router is deployed in the lab.
 
-[View detailed network design](docs/01-network-design.md)
+[View network design](docs/01-network-design.md)
 
 ---
 
-## Active Directory Design
+## Active Directory
 
 A new Active Directory forest was deployed for:
 
@@ -73,7 +65,7 @@ A new Active Directory forest was deployed for:
 ballardlab.local
 ```
 
-The directory structure separates users and security groups by organizational and administrative function.
+Directory objects are organized using departmental and administrative OUs.
 
 ```text
 BallardLab
@@ -87,239 +79,170 @@ BallardLab
     +-- Domain Local
 ```
 
-### Role-Based Global Groups
+Global security groups represent organizational roles:
 
 ```text
 GG-Finance-Users
 GG-Operations-Users
 ```
 
-Global groups represent user roles within the organization.
-
-### Resource Permission Groups
+Domain Local groups represent access to specific resources:
 
 ```text
 DL-Finance-Share-Modify
 DL-Operations-Share-Modify
 ```
 
-Domain Local groups represent access levels to specific resources.
-
-[View Active Directory documentation](docs/02-active-directory.md)
+[View Active Directory design](docs/02-active-directory.md)
 
 ---
 
-## AGDLP Access Control
+## Role-Based Access Control
 
-File share permissions were implemented using the AGDLP model:
+Department file access uses the AGDLP model:
 
 ```text
-Accounts
+Account
    |
-Global Groups
+Global Role Group
    |
-Domain Local Groups
+Domain Local Resource Group
    |
-Permissions
+NTFS Permission
 ```
 
-### Finance Access Path
+Example:
 
 ```text
-Sarah Miller (smiller)
-        |
-GG-Finance-Users
-        |
-DL-Finance-Share-Modify
-        |
-NTFS Modify
-        |
-\\DC01\Finance
-```
-
-### Operations Access Path
-
-```text
-Olivia Davis (odavis)
-        |
+Olivia Davis
+      |
 GG-Operations-Users
-        |
+      |
 DL-Operations-Share-Modify
-        |
+      |
 NTFS Modify
-        |
+      |
 \\DC01\Operations
 ```
 
-Permissions are assigned to resource-specific Domain Local groups rather than directly to individual user accounts.
+Department users receive `Modify` rather than `Full Control`, allowing normal file operations without granting permission-management or ownership capabilities.
 
-This design allows access to be managed through role group membership and avoids maintaining individual user ACL entries.
+SMB share permissions are broad in the lab while granular authorization is enforced through NTFS ACLs.
 
-[View access control documentation](docs/04-access-control.md)
+Positive and negative access tests confirmed that authorized users could create, modify, and delete files while cross-department access was denied.
 
----
-
-## SMB and NTFS Permission Model
-
-Department resources are exposed through SMB shares:
-
-```text
-\\DC01\Finance
-\\DC01\Operations
-```
-
-The SMB share layer permits broad access while NTFS permissions enforce granular resource authorization.
-
-```text
-SMB Share Permission
-Everyone -> Full Control
-          |
-          v
-NTFS ACL
-Resource Domain Local Group -> Modify
-```
-
-Broad inherited NTFS entries were removed from the department folders after inheritance was disabled and existing permissions were converted to explicit entries.
-
-The resulting ACL design retains administrative access while assigning user access through the appropriate Domain Local security group.
+[View access control implementation](docs/04-access-control.md)
 
 ---
 
-## DHCP Configuration
+## DHCP and Active Directory DNS
 
-`DC01` was configured as an authorized Windows DHCP server in Active Directory.
-
-The client scope uses:
+DC01 provides DHCP configuration to CLIENT01.
 
 ```text
-Network:      10.10.10.0/24
-Scope Start:  10.10.10.100
-Scope End:    10.10.10.200
-DNS Server:   10.10.10.10
-DNS Domain:   ballardlab.local
+CLIENT01
+IPv4:       10.10.10.101
+DHCP Server: 10.10.10.10
+DNS Server:  10.10.10.10
+DNS Suffix:  ballardlab.local
 ```
 
-Lower addresses are reserved for statically addressed servers and future network infrastructure.
+Before DHCP was available, CLIENT01 received an APIPA `169.254.x.x` address.
 
-Before DHCP was configured, CLIENT01 received an APIPA address in the `169.254.0.0/16` range.
+After DHCP deployment and scope activation, the client successfully received valid BallardLab network configuration.
 
-After DHCP deployment and scope activation, CLIENT01 successfully received an address in the configured client range along with the internal DNS server and domain suffix.
-
-[View DHCP and DNS documentation](docs/03-dhcp-dns.md)
-
----
-
-## Active Directory DNS Validation
-
-DNS configuration was validated from CLIENT01.
-
-### Forward Resolution
-
-```text
-dc01.ballardlab.local
-        |
-        v
-10.10.10.10
-```
-
-### Active Directory Service Discovery
-
-The LDAP Domain Controller SRV record was queried:
+Active Directory DNS service discovery was validated by querying:
 
 ```text
 _ldap._tcp.dc._msdcs.ballardlab.local
 ```
 
-The DNS server returned:
+The SRV response identified:
 
 ```text
-Service Target: dc01.ballardlab.local
-Port:           389
-IP Address:     10.10.10.10
+dc01.ballardlab.local
+Port 389
+10.10.10.10
 ```
 
-This validated that the domain client could use DNS to discover the domain controller providing LDAP services for `ballardlab.local`.
+This confirmed that CLIENT01 could use internal DNS to locate the domain controller providing LDAP services.
+
+[View DHCP and DNS validation](docs/03-dhcp-dns.md)
 
 ---
 
-## Access Validation
+## Group Policy and Drive Mapping
 
-Access controls were validated using domain user accounts from separate departments.
-
-### Finance User
-
-`BALLARDLAB\smiller`
-
-Expected access:
+A Group Policy Object named:
 
 ```text
-\\DC01\Finance    -> Modify
-\\DC01\Operations -> No Access
+GPO-User-Department-DriveMaps
 ```
 
-Validation included:
+was linked to the `Users` OU.
 
-- Opening the Finance share
-- Reading an existing file
-- Modifying and saving the file
-- Creating a new file
-- Deleting the test file
+Group Policy Preferences and item-level targeting automatically map departmental network drives based on Global security group membership.
 
-All expected Modify operations completed successfully.
+| Role Group | Drive | Resource |
+|---|---|---|
+| `GG-Finance-Users` | `F:` | `\\DC01\Finance` |
+| `GG-Operations-Users` | `O:` | `\\DC01\Operations` |
 
-### Cross-Department Access Test
+The same GPO provides different configurations to users based on their Active Directory role.
 
-While authenticated as `BALLARDLAB\smiller`, access to:
+### Role Transfer Validation
+
+Sarah Miller was transferred from Finance to Operations.
+
+The change required:
 
 ```text
-\\DC01\Operations
+Remove: GG-Finance-Users
+Add:    GG-Operations-Users
+Move:   Finance OU -> Operations OU
 ```
 
-returned:
+No NTFS ACL changes were required.
+
+Testing identified that the initial GPP `Update` action could leave a stale drive mapping after a role change.
+
+The configuration was revised to use:
 
 ```text
-Access Denied
+Replace
++
+Remove this item when it is no longer applied
 ```
 
-This confirmed that the Finance user's security group memberships did not map to an allowed security principal on the Operations NTFS ACL.
+After a complete sign-out and sign-in:
 
-The same positive access testing was completed for the Operations user against the Operations share.
+```text
+Finance F:     Removed
+Operations O:  Mapped
+Finance Access: Denied
+Operations Modify: Successful
+```
+
+The test also demonstrated that `gpupdate /force` reprocesses Group Policy but does not rebuild an existing Windows logon access token.
+
+[View Group Policy and role-transfer validation](docs/05-group-policy.md)
 
 ---
 
 ## Troubleshooting and Validation
 
-Several configuration issues were diagnosed through the build process.
+The project included hands-on diagnosis and validation of:
 
-### APIPA Address Assignment
-
-CLIENT01 initially received a `169.254.x.x` address.
-
-The client NIC was configured for DHCP, but no DHCP server was available on the virtual network.
-
-After the DHCP role was configured, authorized, and provided an active scope, the client successfully received valid network configuration.
-
-### Active Directory DNS
-
-CLIENT01 was configured to use:
-
-```text
-10.10.10.10
-```
-
-as its DNS server.
-
-Using an external resolver such as a public DNS service would prevent the client from discovering the private `ballardlab.local` Active Directory DNS records.
-
-Forward and SRV record lookups were used to validate internal DNS and AD service discovery.
-
-### Hyper-V Enhanced Session Authentication
-
-A domain user was initially unable to sign in through Hyper-V Enhanced Session Mode because the account did not have Remote Desktop Services logon rights.
-
-Rather than granting unnecessary RDP permissions to a standard Finance user, Enhanced Session Mode was disabled and the client was accessed through the standard VM console.
-
-This preserved the intended least-privilege access model.
+- APIPA addressing before DHCP availability
+- Static addressing for domain infrastructure
+- DHCP lease and client option assignment
+- Active Directory DNS and LDAP SRV discovery
+- Hyper-V Enhanced Session logon rights
+- NTFS and SMB permission interaction
+- Positive and negative authorization testing
+- Group Policy processing with `gpupdate` and `gpresult`
+- Windows access token refresh after group membership changes
+- Stale GPP drive mappings during user role transitions
 
 ---
 
@@ -327,25 +250,20 @@ This preserved the intended least-privilege access model.
 
 - [x] Create isolated Hyper-V virtual network
 - [x] Deploy Windows Server 2022
-- [x] Configure static server IPv4 addressing
+- [x] Configure static server addressing
 - [x] Deploy Active Directory Domain Services
-- [x] Create `ballardlab.local` forest
 - [x] Configure AD-integrated DNS
 - [x] Deploy and authorize DHCP
 - [x] Configure DHCP client scope and options
-- [x] Deploy Windows 11 Pro client
-- [x] Join CLIENT01 to the domain
-- [x] Implement organizational unit structure
-- [x] Create role-based Global security groups
-- [x] Create resource-based Domain Local security groups
-- [x] Implement AGDLP access control
-- [x] Configure department SMB shares
-- [x] Configure explicit NTFS ACLs
-- [x] Validate positive user access
-- [x] Validate cross-department access restrictions
+- [x] Deploy and domain-join Windows 11 client
+- [x] Implement OU and security group structure
+- [x] Implement AGDLP-based access control
+- [x] Configure departmental SMB shares and NTFS ACLs
+- [x] Validate positive and negative resource access
 - [x] Validate Active Directory DNS SRV records
-- [ ] Deploy Group Policy Objects
-- [ ] Automate department drive mapping
+- [x] Deploy Group Policy Preferences
+- [x] Automate role-based departmental drive mapping
+- [x] Validate user role-transfer lifecycle
 - [ ] Configure Windows security policies
 - [ ] Configure Windows Defender Firewall policy
 - [ ] Complete final infrastructure validation
@@ -354,10 +272,17 @@ This preserved the intended least-privilege access model.
 
 ## Documentation
 
-- [Network Design](docs/01-network-design.md)
-- [Active Directory](docs/02-active-directory.md)
-- [DHCP and DNS](docs/03-dhcp-dns.md)
-- [Access Control](docs/04-access-control.md)
+1. [Network Design](docs/01-network-design.md)
+2. [Active Directory](docs/02-active-directory.md)
+3. [DHCP and DNS](docs/03-dhcp-dns.md)
+4. [Access Control](docs/04-access-control.md)
+5. [Group Policy and Role-Based Drive Mapping](docs/05-group-policy.md)
+
+---
+
+## Skills Demonstrated
+
+`Windows Server 2022` `Active Directory` `AD DS` `DNS` `DHCP` `Group Policy` `Group Policy Preferences` `Hyper-V` `Windows 11` `AGDLP` `NTFS Permissions` `SMB` `RBAC` `Least Privilege` `Identity and Access Management` `Infrastructure Troubleshooting`
 
 ---
 
