@@ -52,7 +52,8 @@ The lab operates on an isolated Hyper-V virtual network named `BALLARDLAB-LAN`.
      |        |        |
    AD DS     DNS      DHCP
      |
- ballardlab.local```
+ ballardlab.local
+```
 
 `DC01` uses a static IPv4 address and provides centralized identity, DNS, and DHCP services.
 
