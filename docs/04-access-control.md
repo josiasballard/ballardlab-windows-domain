@@ -2,7 +2,7 @@
 
 ## Overview
 
-BallardLab uses role-based security groups, the AGDLP model, SMB file sharing, and NTFS permissions to control access to department resources.
+BallardLab uses role-based security groups, the AGDLP model, SMB file sharing, and NTFS permissions to control access to departmental resources.
 
 Two department file shares were implemented:
 
@@ -66,7 +66,9 @@ DL = Domain Local Groups
 P  = Permissions
 ```
 
-### Finance
+### Initial Finance Access Path
+
+Sarah Miller was initially assigned to the Finance role.
 
 ```text
 Sarah Miller
@@ -84,7 +86,9 @@ NTFS Modify
 C:\Shares\Finance
 ```
 
-### Operations
+### Operations Access Path
+
+Olivia Davis was assigned to the Operations role.
 
 ```text
 Olivia Davis
@@ -108,9 +112,27 @@ Domain Local groups represent access to specific resources.
 
 NTFS permissions are assigned to the Domain Local resource groups.
 
+This design separates:
+
+```text
+Who the user is
+        |
+        v
+Global Group
+```
+
+from:
+
+```text
+What access is granted
+        |
+        v
+Domain Local Group
+```
+
 ## NTFS Permission Configuration
 
-NTFS inheritance was disabled on each department folder.
+NTFS inheritance was disabled on each departmental folder.
 
 Existing inherited permissions were converted to explicit permission entries before broad user access entries were removed.
 
@@ -118,7 +140,7 @@ The resulting permission design retains administrative and system access while g
 
 ### Finance ACL
 
-Conceptually:
+The final Finance ACL uses:
 
 ```text
 SYSTEM                          -> Full Control
@@ -126,15 +148,23 @@ BALLARDLAB\Administrators       -> Full Control
 DL-Finance-Share-Modify         -> Modify
 ```
 
+![Finance NTFS ACL](../screenshots/21-finance-ntfs-acl.png)
+
+The `DL-Finance-Share-Modify` group receives Modify permission but does not receive Full Control.
+
 ### Operations ACL
 
-Conceptually:
+The final Operations ACL uses:
 
 ```text
 SYSTEM                          -> Full Control
 BALLARDLAB\Administrators       -> Full Control
 DL-Operations-Share-Modify      -> Modify
 ```
+
+![Operations NTFS ACL](../screenshots/22-operations-ntfs-acl.png)
+
+The `DL-Operations-Share-Modify` group receives Modify permission but does not receive Full Control.
 
 No individual department user is directly assigned NTFS permission.
 
@@ -145,7 +175,7 @@ smiller -> No direct ACL entry
 odavis  -> No direct ACL entry
 ```
 
-Access is inherited through security group membership.
+Access is provided through nested security group membership.
 
 ## Why Modify Was Assigned
 
@@ -166,6 +196,8 @@ Full Control would additionally allow users to change permissions and take owner
 Those administrative capabilities are not required for standard department users.
 
 This follows the principle of least privilege.
+
+The final NTFS configuration therefore provides the operational access department users need without granting administrative control of the resource ACL.
 
 ## SMB Share Permissions
 
@@ -209,7 +241,9 @@ The broad SMB permission does not override restrictive NTFS permissions.
 
 When share and NTFS permissions both apply to network access, the effective result is constrained by both permission layers.
 
-## Finance Access Validation
+For this lab, the SMB layer exposes the share while NTFS provides the detailed departmental authorization boundary.
+
+## Initial Finance Access Validation
 
 Sarah Miller authenticated to CLIENT01 using:
 
@@ -217,7 +251,7 @@ Sarah Miller authenticated to CLIENT01 using:
 BALLARDLAB\smiller
 ```
 
-Her security group path was:
+At the time of the initial validation, her security group path was:
 
 ```text
 smiller
@@ -247,6 +281,12 @@ Delete test file       -> Success
 ```
 
 The successful create, edit, and delete operations validated the expected NTFS Modify permission.
+
+![Finance Modify access validation](../screenshots/10-finance-modify-access-success.png)
+
+The access was provided through nested group membership.
+
+Sarah did not have a direct ACL entry on the Finance folder.
 
 ## Operations Access Validation
 
@@ -294,13 +334,13 @@ Cross-department access was therefore tested.
 
 ### Finance User Against Operations
 
-Sarah Miller attempted to access:
+During the initial Finance role validation, Sarah Miller attempted to access:
 
 ```text
 \\DC01\Operations
 ```
 
-Her access path was:
+Her access path at that time was:
 
 ```text
 smiller
@@ -324,6 +364,8 @@ The request returned:
 Access Denied
 ```
 
+![Operations access denied to Finance user](../screenshots/11-operations-access-denied.png)
+
 Sarah was not explicitly assigned a `Deny` permission.
 
 Access was unavailable because her security group memberships did not map to an allowed security principal on the Operations NTFS ACL.
@@ -334,11 +376,13 @@ This distinction is important:
 No applicable Allow != Explicit Deny
 ```
 
+The negative access test confirmed that the departmental authorization boundary was functioning as intended.
+
 ## Windows Access Tokens
 
-When Sarah authenticated to CLIENT01, Windows created an access token containing her user SID and applicable security group SIDs.
+When a domain user authenticates to CLIENT01, Windows creates an access token containing the user's SID and applicable security group SIDs.
 
-Conceptually:
+For Sarah's initial Finance role, the token conceptually included:
 
 ```text
 Sarah authenticates
@@ -364,7 +408,7 @@ DL-Finance-Share-Modify -> Modify
 
 A matching allowed security principal was found and access was granted.
 
-For the Operations folder, Sarah's token did not contain membership that mapped to:
+For the Operations folder, Sarah's token did not initially contain membership that mapped to:
 
 ```text
 DL-Operations-Share-Modify
@@ -374,20 +418,20 @@ No applicable Allow permission granted access to the resource.
 
 ## User Transfer Scenario
 
-The group-based access model simplifies user lifecycle changes.
+The group-based access model was then tested through a departmental transfer scenario.
 
 Example ticket:
 
 > Sarah Miller has transferred from Finance to Operations. Remove Finance access and provide standard Operations access.
 
-The required Active Directory group changes are:
+The required Active Directory role changes were:
 
 ```text
 Remove: GG-Finance-Users
 Add:    GG-Operations-Users
 ```
 
-Sarah's user object can also be moved:
+Sarah's user object was also moved:
 
 ```text
 Finance OU
@@ -396,12 +440,13 @@ Finance OU
 Operations OU
 ```
 
-The Finance and Operations folder ACLs do not need to be modified.
+The Finance and Operations folder ACLs did not need to be modified.
 
-The access paths automatically change through group membership:
+The access paths changed through security group membership.
+
+### Previous Role
 
 ```text
-Old:
 Sarah
   |
 GG-Finance-Users
@@ -411,8 +456,9 @@ DL-Finance-Share-Modify
 Finance Modify
 ```
 
+### New Role
+
 ```text
-New:
 Sarah
   |
 GG-Operations-Users
@@ -422,7 +468,56 @@ DL-Operations-Share-Modify
 Operations Modify
 ```
 
-After a group membership change, Sarah may need to sign out and sign back in so Windows creates a new logon session and access token containing the updated group memberships.
+After the group membership change, Sarah's existing Windows session continued to use the access token created during the previous logon session.
+
+Running:
+
+```powershell
+gpupdate /force
+```
+
+reprocessed Group Policy but did not rebuild the existing user access token.
+
+Sarah signed out and signed back in to create a new logon session.
+
+The refreshed token contained:
+
+```text
+GG-Operations-Users
+DL-Operations-Share-Modify
+```
+
+The Finance groups were no longer represented in the validated token output.
+
+The complete role-transfer, access-token, and drive-mapping lifecycle validation is documented in:
+
+[Group Policy and Role-Based Drive Mapping](05-group-policy.md)
+
+## Post-Transfer Authorization Validation
+
+After Sarah authenticated with a fresh logon session, her Operations access path was active.
+
+She successfully accessed the Operations share and performed Modify-level file operations.
+
+Her previous Finance access path had been removed.
+
+A direct attempt to access:
+
+```text
+\\DC01\Finance
+```
+
+returned:
+
+```text
+Access Denied
+```
+
+This confirmed that changing Sarah's role group memberships updated the effective authorization path without requiring direct changes to either departmental folder ACL.
+
+The NTFS access-control architecture remained unchanged.
+
+Only the user's role membership changed.
 
 ## Security Principles Demonstrated
 
@@ -437,10 +532,34 @@ The access-control implementation demonstrates:
 - SMB and NTFS permission interaction
 - Positive authorization testing
 - Negative authorization testing
+- Windows access token evaluation
+- Nested security group authorization
 - User access lifecycle management
+- Departmental role transfer
+- Access removal without direct ACL changes
+
+## Validation Summary
+
+The access-control design was validated through:
+
+- Creating separate Finance and Operations resources
+- Creating resource-specific Domain Local security groups
+- Nesting departmental Global groups into resource permission groups
+- Removing broad inherited NTFS user entries
+- Assigning Modify permission to Domain Local groups
+- Verifying that Full Control was not granted to department users
+- Successfully reading, creating, modifying, and deleting files
+- Testing unauthorized cross-department access
+- Distinguishing no applicable Allow permission from an explicit Deny entry
+- Transferring Sarah from Finance to Operations
+- Updating role group membership without modifying folder ACLs
+- Refreshing the Windows logon token through sign-out and sign-in
+- Validating successful Operations access after the transfer
+- Validating denied Finance access after the transfer
 
 ## Related Documentation
 
 - [Active Directory](02-active-directory.md)
 - [DHCP and DNS](03-dhcp-dns.md)
 - [Network Design](01-network-design.md)
+- [Group Policy and Role-Based Drive Mapping](05-group-policy.md)
