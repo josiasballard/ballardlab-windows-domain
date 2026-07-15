@@ -20,9 +20,13 @@ The DHCP Server role was installed on DC01.
 
 After installation, the DHCP server was authorized in Active Directory before servicing domain clients.
 
-Installing the DHCP role provides the server with DHCP functionality, while Active Directory authorization controls which Windows DHCP servers are authorized to operate in the domain environment.
+Installing the DHCP role provides the server with DHCP functionality, while Active Directory authorization provides an administrative control for Windows DHCP servers operating in an Active Directory domain.
 
-An unauthorized Windows DHCP server in an Active Directory domain should not provide leases to clients after detecting that it is not authorized.
+An Active Directory-aware Windows DHCP server checks its authorization status before providing DHCP services in the domain environment.
+
+This authorization mechanism helps prevent unauthorized Windows DHCP servers from servicing domain clients.
+
+DHCP authorization does not replace network-level protections against every possible rogue DHCP implementation. Additional controls such as DHCP snooping may be used on managed switching infrastructure in production environments.
 
 ## DHCP Scope
 
@@ -51,6 +55,12 @@ DC01 uses:
 
 and is therefore outside the DHCP client pool.
 
+The DHCP management console was used to verify active client leases within the configured scope.
+
+![DHCP scope address lease validation](../screenshots/20-dhcp-scope-address-leases.png)
+
+The lease table confirmed dynamic address assignment to both CLIENT01 and the Hyper-V host virtual network adapter connected to `BALLARDLAB-LAN`.
+
 ## DHCP Options
 
 The scope provides clients with internal DNS configuration.
@@ -60,7 +70,7 @@ DNS Server: 10.10.10.10
 DNS Domain: ballardlab.local
 ```
 
-A default gateway is not currently distributed because BALLARDLAB-LAN is an isolated subnet with no router providing connectivity to another network.
+A default gateway is not currently distributed because `BALLARDLAB-LAN` is an isolated subnet with no router providing connectivity to another network.
 
 CLIENT01 and DC01 are both located on:
 
@@ -74,7 +84,7 @@ Because both systems are on the same IPv4 subnet, they can communicate directly 
 
 Before DHCP was configured, CLIENT01 was set to obtain an IPv4 address automatically.
 
-No DHCP server was available on BALLARDLAB-LAN.
+No DHCP server was available on `BALLARDLAB-LAN`.
 
 The client assigned itself an Automatic Private IP Addressing address in:
 
@@ -101,6 +111,8 @@ Verify active DHCP scope and address availability
 
 After the DHCP role was installed, the server was authorized, and the client scope was activated, valid DHCP leases were issued.
 
+The transition from APIPA to a valid `10.10.10.0/24` address provided a direct validation that CLIENT01 could discover and receive configuration from the DHCP service on DC01.
+
 ## DHCP Lease Validation
 
 CLIENT01 received:
@@ -119,11 +131,33 @@ The configuration was validated using:
 ipconfig /all
 ```
 
-The output confirmed that DC01 issued the DHCP lease and supplied the internal DNS configuration required by the domain client.
+![CLIENT01 DHCP configuration validation](../screenshots/19-client01-dhcp-configuration.png)
+
+The output confirmed:
+
+- DHCP was enabled on the CLIENT01 Ethernet adapter
+- CLIENT01 received `10.10.10.101`
+- The DHCP server was `10.10.10.10`
+- The DNS server was `10.10.10.10`
+- The `ballardlab.local` DNS suffix was assigned
+- No default gateway was distributed
+
+This validated that DC01 issued the client network configuration required for the BallardLab domain environment.
 
 During validation, the Hyper-V host also received a DHCP lease on its `BALLARDLAB-LAN` virtual Ethernet adapter.
 
 This behavior was expected because an Internal Hyper-V virtual switch provides connectivity between virtual machines and the Hyper-V host.
+
+The DHCP address lease table showed:
+
+```text
+10.10.10.100  DESKTOP-DQHC5T1.ballardlab.local
+10.10.10.101  CLIENT01.ballardlab.local
+```
+
+Both addresses were dynamically assigned by the DHCP service on DC01.
+
+![DHCP client address leases](../screenshots/20-dhcp-scope-address-leases.png)
 
 ## Active Directory DNS
 
@@ -144,6 +178,10 @@ ballardlab.local
 ```
 
 Using a public DNS resolver as the client's primary DNS server would prevent the client from resolving private BallardLab records and discovering Active Directory services.
+
+For the domain client, internal DNS is not simply used to translate hostnames into IPv4 addresses.
+
+It also provides the service records CLIENT01 uses to locate Active Directory services.
 
 ## Forward DNS Resolution
 
@@ -196,6 +234,8 @@ DNS also resolved the SRV target:
 dc01.ballardlab.local -> 10.10.10.10
 ```
 
+![Active Directory LDAP SRV record validation](../screenshots/09-ad-dns-srv-record-verification.png)
+
 The service discovery path was:
 
 ```text
@@ -222,6 +262,8 @@ An A record maps the server hostname to its IPv4 address.
 
 Together, these DNS records allow CLIENT01 to locate DC01 and discover Active Directory services.
 
+This service discovery process is a core dependency of the Active Directory domain environment.
+
 ## Reverse DNS Observation
 
 During `nslookup` validation, the output displayed:
@@ -236,6 +278,8 @@ The requested forward and SRV lookups still completed successfully.
 The DNS server name displayed as `UnKnown` because a reverse lookup zone and PTR record had not been configured for `10.10.10.10`.
 
 This did not prevent forward DNS resolution or Active Directory SRV record queries from succeeding.
+
+The observation was retained as a documented lab limitation rather than treating the successful query response as a DNS failure.
 
 ## Domain Join Dependency
 
@@ -268,20 +312,35 @@ Computer account and domain trust are established
 
 Successful DNS service discovery was validated before CLIENT01 was joined to the domain.
 
+After the domain join, domain users could authenticate to CLIENT01 using `BALLARDLAB` identities.
+
+The Active Directory deployment and domain client configuration are documented in:
+
+[Active Directory](02-active-directory.md)
+
 ## Validation Summary
 
 The DHCP and DNS implementation was validated through:
 
-- APIPA identification before DHCP availability
-- Successful DHCP lease assignment
-- DHCP server identification as `10.10.10.10`
-- Internal DNS server assignment
-- DNS suffix assignment
-- Forward DNS resolution
-- Active Directory LDAP SRV record queries
-- Domain controller service discovery
-- Successful CLIENT01 domain join
+- Identifying APIPA behavior before DHCP availability
+- Installing and authorizing the Windows DHCP Server role
+- Configuring a `10.10.10.100 - 10.10.10.200` DHCP scope
+- Preserving lower subnet addresses for static infrastructure
+- Successfully assigning `10.10.10.101` to CLIENT01
+- Identifying DC01 as the DHCP server at `10.10.10.10`
+- Assigning DC01 as the internal DNS server
+- Assigning the `ballardlab.local` DNS suffix
+- Verifying active leases through the DHCP management console
+- Validating forward DNS resolution
+- Querying the Active Directory LDAP SRV record
+- Resolving the SRV target to DC01
+- Validating domain controller service discovery
+- Successfully joining CLIENT01 to `ballardlab.local`
 
 The underlying subnet and Hyper-V switch design are documented in:
 
 [Network Design](01-network-design.md)
+
+The Active Directory identity and domain architecture are documented in:
+
+[Active Directory](02-active-directory.md)
