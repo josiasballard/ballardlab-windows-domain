@@ -1,10 +1,10 @@
 # BallardLab Windows Domain Infrastructure
 
-A hands-on Windows Server 2022 infrastructure lab implementing Active Directory Domain Services, DNS, DHCP, Group Policy, domain-joined Windows clients, AGDLP-based access control, and SMB file services in an isolated Hyper-V environment.
+A hands-on Windows Server 2022 infrastructure lab implementing Active Directory Domain Services, DNS, DHCP, Group Policy, domain-joined Windows clients, AGDLP-based access control, SMB file services, Windows security policies, and centralized Windows Defender Firewall management in an isolated Hyper-V environment.
 
-The project models common Windows systems administration tasks including centralized identity management, client network configuration, role-based resource access, Group Policy deployment, and user access lifecycle changes.
+The project models common Windows systems administration tasks including centralized identity management, client network configuration, role-based resource access, Group Policy deployment, endpoint security baselines, and user access lifecycle changes.
 
-> **Project Status:** In Progress — core domain infrastructure, Group Policy, access control, and Windows security policies are complete. Windows Defender Firewall policy and final infrastructure validation remain.
+> **Project Status:** In Progress — core Windows infrastructure, Active Directory, Group Policy, access control, Windows security policies, and centralized Windows Defender Firewall management are complete. Final infrastructure validation remains.
 
 ---
 
@@ -24,7 +24,7 @@ The project models common Windows systems administration tasks including central
 
 ### Technologies
 
-`Windows Server 2022` `Active Directory` `DNS` `DHCP` `Group Policy` `Windows Security Policies` `Hyper-V` `Windows 11` `SMB` `NTFS` `AGDLP`
+`Windows Server 2022` `Active Directory` `DNS` `DHCP` `Group Policy` `Windows Security Policies` `Windows Defender Firewall` `Hyper-V` `Windows 11` `SMB` `NTFS` `AGDLP`
 
 ---
 
@@ -53,7 +53,7 @@ DC01 uses a static IPv4 address and provides Active Directory, DNS, and DHCP ser
 
 The isolated subnet currently has no default gateway because no router is deployed in the lab.
 
-[View network design](docs/01-network-design.md)
+[View Network Design](docs/01-network-design.md)
 
 ---
 
@@ -93,7 +93,7 @@ DL-Finance-Share-Modify
 DL-Operations-Share-Modify
 ```
 
-[View Active Directory design](docs/02-active-directory.md)
+[View Active Directory Design](docs/02-active-directory.md)
 
 ---
 
@@ -131,7 +131,7 @@ SMB share permissions are broad in the lab while granular authorization is enfor
 
 Positive and negative access tests confirmed that authorized users could create, modify, and delete files while cross-department access was denied.
 
-[View access control implementation](docs/04-access-control.md)
+[View Access Control Implementation](docs/04-access-control.md)
 
 ---
 
@@ -167,7 +167,7 @@ Port 389
 
 This confirmed that CLIENT01 could use internal DNS to locate the domain controller providing LDAP services.
 
-[View DHCP and DNS validation](docs/03-dhcp-dns.md)
+[View DHCP and DNS Validation](docs/03-dhcp-dns.md)
 
 ---
 
@@ -225,7 +225,7 @@ Operations Modify: Successful
 
 The test also demonstrated that `gpupdate /force` reprocesses Group Policy but does not rebuild an existing Windows logon access token.
 
-[View Group Policy and role-transfer validation](docs/05-group-policy.md)
+[View Group Policy and Role-Based Drive Mapping](docs/05-group-policy.md)
 
 ---
 
@@ -247,6 +247,8 @@ The project included hands-on diagnosis and validation of:
 - Password history enforcement
 - Account lockout validation
 - Administrative account recovery
+- Windows Defender Firewall policy deployment
+- Windows Defender Firewall validation through Group Policy
 
 ---
 
@@ -269,7 +271,7 @@ The project included hands-on diagnosis and validation of:
 - [x] Automate role-based departmental drive mapping
 - [x] Validate user role-transfer lifecycle
 - [x] Configure Windows security policies
-- [ ] Configure Windows Defender Firewall policy
+- [x] Configure Windows Defender Firewall policy
 - [ ] Complete final infrastructure validation
 
 ---
@@ -282,9 +284,10 @@ The project included hands-on diagnosis and validation of:
 4. [Access Control](docs/04-access-control.md)
 5. [Group Policy and Role-Based Drive Mapping](docs/05-group-policy.md)
 6. [Windows Security Policies](docs/06-security-policies.md)
+7. [Windows Defender Firewall Policy](docs/07-firewall-policy.md)
 
 ---
 
 ## Skills Demonstrated
 
-`Windows Server 2022` `Active Directory` `AD DS` `DNS` `DHCP` `Group Policy` `Group Policy Preferences` `Hyper-V` `Windows 11` `AGDLP` `NTFS Permissions` `SMB` `RBAC` `Least Privilege` `Identity and Access Management` `Infrastructure Troubleshooting`
+`Windows Server 2022` `Active Directory` `AD DS` `DNS` `DHCP` `Group Policy` `Group Policy Preferences` `Windows Defender Firewall` `Hyper-V` `Windows 11` `AGDLP` `NTFS Permissions` `SMB` `RBAC` `Least Privilege` `Identity and Access Management` `Infrastructure Troubleshooting`
