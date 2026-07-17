@@ -1,4 +1,4 @@
-# 06 - Windows Security Policies
+# Windows Security Policies
 
 ## Overview
 
