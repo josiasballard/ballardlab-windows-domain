@@ -264,7 +264,7 @@ The project included hands-on diagnosis and validation of:
 - [x] Deploy Group Policy Preferences
 - [x] Automate role-based departmental drive mapping
 - [x] Validate user role-transfer lifecycle
-- [ ] Configure Windows security policies
+- [x] Configure Windows security policies
 - [ ] Configure Windows Defender Firewall policy
 - [ ] Complete final infrastructure validation
 
