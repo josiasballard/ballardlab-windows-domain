@@ -277,6 +277,7 @@ The project included hands-on diagnosis and validation of:
 3. [DHCP and DNS](docs/03-dhcp-dns.md)
 4. [Access Control](docs/04-access-control.md)
 5. [Group Policy and Role-Based Drive Mapping](docs/05-group-policy.md)
+6. [Windows Security Policies](docs/06-security-policies.md)
 
 ---
 
