@@ -4,7 +4,7 @@ A hands-on Windows Server 2022 infrastructure lab implementing Active Directory 
 
 The project models common Windows systems administration tasks including centralized identity management, client network configuration, role-based resource access, Group Policy deployment, and user access lifecycle changes.
 
-> **Project Status:** In Progress — core domain infrastructure, access control, and role-based drive mapping are complete. Additional endpoint security policies are being implemented.
+> **Project Status:** In Progress — core domain infrastructure, Group Policy, access control, and Windows security policies are complete. Windows Defender Firewall policy and final infrastructure validation remain.
 
 ---
 
@@ -24,7 +24,7 @@ The project models common Windows systems administration tasks including central
 
 ### Technologies
 
-`Windows Server 2022` `Active Directory` `DNS` `DHCP` `Group Policy` `Hyper-V` `Windows 11` `SMB` `NTFS` `AGDLP`
+`Windows Server 2022` `Active Directory` `DNS` `DHCP` `Group Policy` `Windows Security Policies` `Hyper-V` `Windows 11` `SMB` `NTFS` `AGDLP`
 
 ---
 
@@ -243,6 +243,10 @@ The project included hands-on diagnosis and validation of:
 - Group Policy processing with `gpupdate` and `gpresult`
 - Windows access token refresh after group membership changes
 - Stale GPP drive mappings during user role transitions
+- Password complexity enforcement
+- Password history enforcement
+- Account lockout validation
+- Administrative account recovery
 
 ---
 
